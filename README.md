@@ -116,6 +116,50 @@ With natural keys, relationships are immediately visible in query results withou
 - PostgreSQL community naming conventions
 - Addresses MongoDB Issue #1: Dual Identity System
 
+### 2. Always Use TIMESTAMPTZ for Timestamps
+
+**Decision:** Use `TIMESTAMPTZ` (timestamp with time zone) for all timestamp fields, never `TIMESTAMP` (timestamp without time zone).
+
+**Rationale:**
+- PostgreSQL best practice: Official documentation recommends always using `TIMESTAMPTZ`
+- **Unambiguous time representation** - always know the exact moment, regardless of timezone
+- **Automatic timezone conversion** - PostgreSQL stores everything in UTC internally, converts on read
+- **Future-proof** - even if all users are in one timezone today, this prevents issues if that changes
+- **No performance penalty** - both types use 8 bytes, no difference in storage or speed
+
+**Implementation:**
+```sql
+-- ✅ Always use TIMESTAMPTZ
+created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+
+-- ❌ Never use plain TIMESTAMP
+created_at TIMESTAMP NOT NULL DEFAULT NOW()  -- Ambiguous! What timezone?
+```
+
+**How it works:**
+- When inserting: PostgreSQL converts your input time to UTC based on session timezone
+- When reading: PostgreSQL converts UTC back to your session timezone
+- The database always knows the absolute moment in time
+
+**Example:**
+```sql
+SET timezone = 'Europe/Moscow';  -- UTC+3
+INSERT INTO users VALUES ('john', 'hash', NOW());
+-- Stored internally: 2025-01-15 08:00:00 UTC
+
+SET timezone = 'America/New_York';  -- UTC-5
+SELECT created_at FROM users WHERE username = 'john';
+-- Returns: 2025-01-15 03:00:00 (automatically converted to NYC time)
+```
+
+**Trade-offs:**
+- None - TIMESTAMPTZ is strictly better than TIMESTAMP
+- Only "downside" is needing to type 2 extra characters
+
+**References:**
+- [PostgreSQL Documentation on Date/Time Types](https://www.postgresql.org/docs/current/datatype-datetime.html)
+- Quote: "For timestamp values, we recommend using `timestamptz`"
+
 ---
 
 *This section will grow as we make additional architectural decisions.*
