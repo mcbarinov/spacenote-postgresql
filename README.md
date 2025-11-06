@@ -84,6 +84,34 @@ CREATE TABLE users (
 - Less familiar to developers accustomed to surrogate key conventions (id SERIAL)
 - Benefits: Eliminates dual identity system, data is human-readable throughout the stack
 
+**Why This Works for SpaceNote:**
+
+Natural keys are not unusual - they're a standard PostgreSQL practice when you have stable, meaningful identifiers. Real-world examples include:
+- Country/currency codes: `countries(country_code CHAR(2))`, `currencies(currency_code CHAR(3))`
+- Product catalogs: `products(sku VARCHAR(50))`
+- Multi-tenant systems: `tenants(tenant_slug VARCHAR(100))`
+
+The "unfamiliarity" concern comes from Rails/Django conventions where `id SERIAL` is the default. But PostgreSQL community practice is clear: **use natural keys when you have stable natural identifiers**.
+
+**Why cascading updates aren't a problem:**
+
+Given our scale (10 users, 100 spaces), the performance impact of cascading updates is negligible:
+- Username changes are rare (maybe once per year per user)
+- Space slug changes are rare (during initial setup only)
+- Even if we update a username with 10,000 notes referencing it, PostgreSQL handles this instantly with proper indexes
+- Our Scale Considerations (line 151) explicitly accept "temporary freezes during critical identifier changes"
+
+**The surrogate key alternative (id BIGSERIAL + Views):**
+
+We considered using surrogate keys in tables but exposing human-readable identifiers via Views. This approach has fatal flaws:
+- **Dual identity problem persists** - just moves from "Core vs API" to "Tables vs Views"
+- **Database data remains opaque** - debugging SQL queries shows `user_id=12345` instead of `username='john'`
+- **Views don't solve write operations** - INSERT/UPDATE still use numeric IDs
+- **Additional complexity** - maintain two parallel systems (tables + views)
+- **Contradicts our priorities** - we prioritize "human and AI readability" over marginal performance gains
+
+With natural keys, relationships are immediately visible in query results without additional joins - invaluable for debugging, AI agent comprehension, and database exploration.
+
 **References:**
 - PostgreSQL community naming conventions
 - Addresses MongoDB Issue #1: Dual Identity System
