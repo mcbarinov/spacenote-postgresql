@@ -7,30 +7,34 @@
 -- ==============================================================================
 
 CREATE TABLE users (
-    username VARCHAR(50) PRIMARY KEY CHECK (username ~ '^[a-z0-9_-]+$'),
-    password_hash TEXT NOT NULL,
-    created_at TIMESTAMP NOT NULL DEFAULT NOW()
+    username VARCHAR(50) PRIMARY KEY CHECK (username ~ '^[a-z0-9_-]+$'),  -- Human-readable username: a-z, 0-9, -, _
+    password_hash TEXT NOT NULL,  -- bcrypt hash
+    created_at TIMESTAMP NOT NULL DEFAULT NOW()  -- Registration timestamp
 );
-
-COMMENT ON TABLE users IS 'User accounts with human-readable usernames as primary keys';
-COMMENT ON COLUMN users.username IS 'Lowercase letters, numbers, hyphens, and underscores only';
-COMMENT ON COLUMN users.password_hash IS 'bcrypt hash of user password';
 
 -- ==============================================================================
 -- SESSIONS TABLE
 -- ==============================================================================
 
 CREATE TABLE sessions (
-    auth_token VARCHAR(255) PRIMARY KEY,
-    username VARCHAR(50) NOT NULL REFERENCES users(username) ON DELETE CASCADE,
-    created_at TIMESTAMP NOT NULL DEFAULT NOW(),
-    expires_at TIMESTAMP NOT NULL DEFAULT (NOW() + INTERVAL '30 days'),
-    last_active_at TIMESTAMP NOT NULL DEFAULT NOW()
+    auth_token VARCHAR(255) PRIMARY KEY,  -- Auth token for lookups
+    username VARCHAR(50) NOT NULL REFERENCES users(username) ON DELETE CASCADE,  -- Owner
+    created_at TIMESTAMP NOT NULL DEFAULT NOW(),  -- Session start
+    expires_at TIMESTAMP NOT NULL DEFAULT (NOW() + INTERVAL '30 days'),  -- 30-day TTL
+    last_active_at TIMESTAMP NOT NULL DEFAULT NOW()  -- Last activity
 );
 
 CREATE INDEX idx_sessions_username ON sessions(username);
 CREATE INDEX idx_sessions_expires_at ON sessions(expires_at);
 CREATE INDEX idx_sessions_last_active ON sessions(last_active_at);
+
+-- ==============================================================================
+-- DATABASE METADATA (for psql \d+ command)
+-- ==============================================================================
+
+COMMENT ON TABLE users IS 'User accounts with human-readable usernames as primary keys';
+COMMENT ON COLUMN users.username IS 'Lowercase letters, numbers, hyphens, and underscores only';
+COMMENT ON COLUMN users.password_hash IS 'bcrypt hash of user password';
 
 COMMENT ON TABLE sessions IS 'User authentication sessions with 30-day TTL';
 COMMENT ON COLUMN sessions.auth_token IS 'Primary key for fast token-based lookups';

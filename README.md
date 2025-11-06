@@ -48,6 +48,50 @@ The original MongoDB-based implementation: [spacenote-backend](https://github.co
 
 **Experiment in Progress** - This repository is being used to evaluate PostgreSQL as an alternative database backend.
 
+## Architectural Decisions
+
+This section documents key architectural decisions made in the PostgreSQL implementation.
+
+### 1. Natural Keys with Domain-Specific Names
+
+**Decision:** Use natural keys (username, slug, etc.) as primary keys, and keep their domain-specific names rather than renaming them to generic `id`.
+
+**Rationale:**
+- The name `id` semantically implies a surrogate key with no business meaning (e.g., SERIAL, UUID)
+- Domain-specific names make it immediately clear what the key represents
+- Aligns with PostgreSQL community best practice: "When using natural keys, keep the domain-specific name. Reserve 'id' for surrogate keys only."
+- Supports our goal of human and AI readability - data is self-documenting
+
+**Implementation:**
+```sql
+-- ✅ Natural key with domain-specific name
+CREATE TABLE users (
+    username VARCHAR(50) PRIMARY KEY,
+    password_hash TEXT NOT NULL,
+    ...
+);
+
+-- ❌ Avoided: Surrogate key approach
+CREATE TABLE users (
+    id SERIAL PRIMARY KEY,
+    username VARCHAR(50) UNIQUE,
+    ...
+);
+```
+
+**Trade-offs:**
+- Natural keys may require cascading updates if the key value changes (acceptable at our scale of 10 users)
+- Less familiar to developers accustomed to surrogate key conventions (id SERIAL)
+- Benefits: Eliminates dual identity system, data is human-readable throughout the stack
+
+**References:**
+- PostgreSQL community naming conventions
+- Addresses MongoDB Issue #1: Dual Identity System
+
+---
+
+*This section will grow as we make additional architectural decisions.*
+
 ## Goals
 
 - Compare PostgreSQL's relational model vs MongoDB's document model for SpaceNote's use cases
