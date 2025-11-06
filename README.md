@@ -54,3 +54,22 @@ The original MongoDB-based implementation: [spacenote-backend](https://github.co
 - Evaluate query performance and complexity
 - Assess schema flexibility and migration patterns
 - Determine which database better suits SpaceNote's architecture
+
+## Scale Considerations
+
+This project operates at a specific scale that informs our design decisions:
+
+**Expected Scale:**
+- Up to 10 users
+- Up to 100 spaces
+- Up to 1,000,000 notes
+
+**Design Priorities:**
+1. **Simplicity over performance** - Data structures should be easy to understand and work with
+2. **Human and AI readability over performance** - Data should be comprehensible to both humans and AI agents without additional lookups
+3. **Acceptable tradeoffs:**
+   - Text-based indexing being slower than numeric indexing is acceptable
+   - Temporary freezes during critical identifier changes (username, space slug) are acceptable
+   - Slightly slower queries are acceptable if they make the data more readable
+
+These constraints allow us to prioritize human-readable identifiers (usernames, space slugs) as primary keys, even though numeric/UUID keys might offer marginal performance benefits at larger scales.
